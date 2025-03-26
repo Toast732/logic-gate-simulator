@@ -1,13 +1,13 @@
 #include "string"
-#include "vector3.hpp"
-#include "..\rendering\objects\volumes\rect.cpp"
-#include "..\resource_manager\resource_manager.cpp"
-#include "..\rendering\renderer.cpp"
+//#include "vector3.hpp"
+#include "../rendering/objects/volumes/rect.cpp"
+#include "../resource_manager/resource_manager.cpp"
+#include "../rendering/renderer.cpp"
 #include "raylib-cpp.hpp"
 #include "memory"
-#include "..\rendering\objects\mesh_data.cpp"
-#include "..\rendering\objects\instanced_mesh_factory.cpp"
-#include "..\rendering\objects\mesh_group.cpp"
+#include "../rendering/objects/mesh_data.cpp"
+#include "../rendering/objects/instanced_mesh_factory.cpp"
+#include "../rendering/objects/mesh_group.cpp"
 
 #ifndef LOGIC_GATE_IO_CPP
 #define LOGIC_GATE_IO_CPP
@@ -44,9 +44,12 @@ inline void setup_logic_gate_io() {
 class LogicIO {
 	public:
 		// constructor
-		LogicIO(std::string name, int io_type, MeshGroup* mesh_group) {
+		LogicIO(std::string name, int io_type) {
 			this->name = name;
 			this->io_type = io_type;
+		}
+
+		void setMeshGroup(MeshGroup* mesh_group) {
 			this->mesh_group = mesh_group;
 		}
 		
@@ -189,20 +192,20 @@ class LogicIO {
 
 				// green if on
 
-				//printf(("ID Before Removal (off): " + std::to_string(this->instance_id->id) + "\n").c_str());
+				//printf(("ID Before Removal (off): " + std::to_string(this->instance_id->id) + "/n").c_str());
 
 				// remove the current off instance.
 				//MeshInstances::Get("logic_io_off")->removeInstance(this->instance_id);
 
 				//delete this->instance_id;
-				//printf(("ID After Removal: " + std::to_string(this->instance_id->id) + "\n").c_str());
+				//printf(("ID After Removal: " + std::to_string(this->instance_id->id) + "/n").c_str());
 
 
 
 				// create an on instance.
 				//this->instance_id = MeshInstances::Get("logic_io_on")->addInstance(std::make_shared<Matrix>(MatrixFromVector3(Vector3Add(this->position, this->offset))));
 
-				//printf(("New ID: " + std::to_string(this->instance_id->id) + "\n").c_str());
+				//printf(("New ID: " + std::to_string(this->instance_id->id) + "/n").c_str());
 
 				//printf("whar2");
 
@@ -217,7 +220,7 @@ class LogicIO {
 				);
 
 				// red if off
-				//printf(("ID Before Removal (on): " + std::to_string(this->instance_id->id) + "\n").c_str());
+				//printf(("ID Before Removal (on): " + std::to_string(this->instance_id->id) + "/n").c_str());
 
 				// remove the current on instance.
 				//MeshInstances::Get("logic_io_on")->removeInstance(this->instance_id);

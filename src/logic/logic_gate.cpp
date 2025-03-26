@@ -6,6 +6,9 @@ typedef std::vector<LogicIO> Outputs;
 #define MESH_GROUP_IDENTIFIER_BASE 0
 #define MESH_GROUP_IDENTIFIER_BODY 1
 
+inline Vector3 const base_scale{ 1.0f, 0.075f, 1.0f };
+inline Vector3 const body_scale{ 0.95f, 0.5f, 0.95f };
+
 /*template<typename T>
 class LogicGate {
 public:
@@ -37,12 +40,12 @@ inline void setup_logic_gate() {
     // create the logic base instanced mesh
     CreateInstancedMesh(
 		"logic_base",
-		GenMeshCube(1.575f, 0.075f, 1.575f),
+		GenMeshCube(base_scale.x, base_scale.y, base_scale.z),
 		{ 200, 200, 200, 255 }
 	);
 
     // logic body mesh
-    Mesh logic_body_mesh = GenMeshCube(1.5f, 0.5f, 1.5f);
+    Mesh logic_body_mesh = GenMeshCube(body_scale.x, body_scale.y, body_scale.z);
 
     // create the logic body on instanced mesh
     CreateInstancedMesh(
@@ -71,18 +74,63 @@ const float IO_MARGIN_PERCENT = 0.1f;
 
 class LogicGate {
     public:
-        LogicGate(Inputs inputs, Outputs outputs, Vector3 scale, SMatrix matrix) {
+        LogicGate(Inputs inputs, Outputs outputs, Matrix matrix) {
             this->inputs = inputs;
             this->outputs = outputs;
 
+            float length = float(std::max(inputs.size(), outputs.size()));
+
+            // set the scale
+            Vector3 scale = {
+                length,
+				1.0f,
+                2.0f
+			};
+
+            //scale.x = 1.0f;
+            //scale.z = 1.0f;
+
+            // set the matrix scale
+            /*matrix = MatrixMultiply(
+                MatrixScale(scale.x, scale.y, scale.z),
+                matrix
+            );*/
+
+            Matrix scale_matrix = MatrixScale(scale.x, scale.y, scale.z);
+
             // set position
-            this->setPosition(matrix);
+            this->setPosition(std::make_shared<Matrix>(matrix));
 
             // set scale
             this->scale = scale;
 
             // create the mesh group
             this->mesh_group = MeshGroup(&this->matrix);
+
+            this->mesh_group.addInstancedMesh(
+                MESH_GROUP_IDENTIFIER_BASE,
+                "logic_base",
+                std::make_shared<Matrix>(scale_matrix)
+            );
+
+            // add the body
+            this->mesh_group.addInstancedMesh(
+                MESH_GROUP_IDENTIFIER_BODY,
+                "logic_body_off",
+                std::make_shared<Matrix>(MatrixMultiply(scale_matrix, MatrixTranslate(0.0f, 0.25f, 0.0f)))
+            );
+
+            // set the mesh group of the logic gates
+
+            // set inputs
+            for (int input_index = 0; input_index < this->inputs.size(); input_index++) {
+				this->inputs[input_index].setMeshGroup(&this->mesh_group);
+			}
+
+            // set outputs
+            for (int output_index = 0; output_index < this->outputs.size(); output_index++) {
+                this->outputs[output_index].setMeshGroup(&this->mesh_group);
+			}
 
             // set the input's positions and to render
             this->setLogicRendering(&this->inputs);
@@ -157,6 +205,10 @@ class LogicGate {
    //         }
         }
 
+        void updateRenderPositions() {
+			this->mesh_group.updateGlobalPosition();
+		}
+
         LogicGate copy() {
             return *this;
 		}
@@ -211,7 +263,7 @@ class LogicGate {
         }
 
         virtual void evaluate() {};
-        virtual void updateRenderPositions() {};
+        //virtual void updateRenderPositions() {};
     private:
 
         LogicIO* getInputByName(std::string logic_name) {
@@ -341,24 +393,19 @@ class AndGate : public LogicGate {
         SMatrix body_matrix = std::make_shared<Matrix>(MatrixTranslate(0, 0.25f, 0));
         bool instances_created = false;
     public:
-        AndGate(SMatrix matrix, Renderer* renderer) : LogicGate(
+        AndGate(Matrix matrix, Renderer* renderer) : LogicGate(
             {
-                LogicIO("A", IO_TYPE_INPUT, &mesh_group),
-                LogicIO("B", IO_TYPE_INPUT, &mesh_group)
+                LogicIO("A", IO_TYPE_INPUT),
+                LogicIO("B", IO_TYPE_INPUT)
             },
             {
-				LogicIO("Output", IO_TYPE_OUTPUT, &mesh_group)
+				LogicIO("Output", IO_TYPE_OUTPUT)
 			},
-            {
-                1.5f,
-                0.5f,
-                1.5f
-            },
             matrix
         ) {
 
             // set the position
-            this->setPosition(matrix);
+            //this->setPosition(matrix);
 
             this->updateRenderPositions();
 
@@ -366,18 +413,22 @@ class AndGate : public LogicGate {
             //Vector3* pos = this->getPosition();
 
             // add the base
-            this->mesh_group.addInstancedMesh(
-                MESH_GROUP_IDENTIFIER_BASE,
-				"logic_base",
-				this->base_matrix
-			);
+   //         this->mesh_group.addInstancedMesh(
+   //             MESH_GROUP_IDENTIFIER_BASE,
+			//	"logic_base",
+			//	this->base_matrix
+			//);
 
-            // add the body
-            this->mesh_group.addInstancedMesh(
-                MESH_GROUP_IDENTIFIER_BODY,
-                "logic_body_off",
-                this->body_matrix
-            );
+   //         // add the body
+   //         this->mesh_group.addInstan
+   // 
+   // 
+   // 
+   //         cedMesh(
+   //             MESH_GROUP_IDENTIFIER_BODY,
+   //             "logic_body_off",
+   //             this->body_matrix
+   //         );
 
             //this->base_instance_id = MeshInstances::Get("logic_base")->addInstance(this->base_matrix);
 
@@ -386,7 +437,7 @@ class AndGate : public LogicGate {
             this->instances_created = true;
         }
 
-        void updateRenderPositions() {
+        /*void updateRenderPositions() {
             this->mesh_group.updateGlobalPosition();
 
             ///*
@@ -396,7 +447,7 @@ class AndGate : public LogicGate {
             //this->body_matrix->m13 = pos->y + 0.25f; // y position
             //this->body_matrix->m14 = pos->z; // z position
 
-            if (this->instances_created) {
+            //if (this->instances_created) {
                 /*MeshInstances::Get("logic_base")->moveInstancePos(this->base_instance_id, this->base_matrix);
 
                 if (this->previous_value == true) {
@@ -405,8 +456,8 @@ class AndGate : public LogicGate {
                 else {
                     MeshInstances::Get("logic_body_off")->moveInstancePos(this->body_instance_id, this->body_matrix);
                 }*/
-            }
-        }
+            //}
+        //}
 
         void evaluate() override {
 
@@ -433,21 +484,186 @@ class AndGate : public LogicGate {
             // set the previous value to the current value.
             this->previous_value = output0;
 
-            if (output0) {
-                // turning on
-                this->mesh_group.replaceInstancedMesh(
-                    MESH_GROUP_IDENTIFIER_BODY,
-                    "logic_body_on"
-                );
-            }
-            else {
-                // turning off
-                this->mesh_group.replaceInstancedMesh(
-                    MESH_GROUP_IDENTIFIER_BODY,
-                    "logic_body_off"
-                );
-            }
+            ///if (output0) {
+            //    // turning on
+            //    this->mesh_group.replaceInstancedMesh(
+            //        MESH_GROUP_IDENTIFIER_BODY,
+            //        "logic_body_on"
+            //    );
+            //}
+            //else {
+            //    // turning off
+            //    this->mesh_group.replaceInstancedMesh(
+            //        MESH_GROUP_IDENTIFIER_BODY,
+            //        "logic_body_off"
+            //    );
+            //}
 
             //this->material.maps->color = { 150, 150, 150, 100 };
         }
+};
+
+class NOTGate : public LogicGate {
+private:
+    int base_instance_id;
+    int body_instance_id;
+    bool previous_value = false;
+
+    SMatrix base_matrix = std::make_shared<Matrix>(MatrixTranslate(0, 0, 0));
+    SMatrix body_matrix = std::make_shared<Matrix>(MatrixTranslate(0, 0.25f, 0));
+    bool instances_created = false;
+public:
+    NOTGate(Matrix matrix, Renderer* renderer) : LogicGate(
+        {
+            LogicIO("A", IO_TYPE_INPUT),
+        },
+        {
+            LogicIO("Output", IO_TYPE_OUTPUT)
+        },
+        matrix
+    ) {
+
+        // set the position
+        //this->setPosition(matrix);
+
+        this->updateRenderPositions();
+
+        // get the position
+        //Vector3* pos = this->getPosition();
+
+        // add the base
+        //this->mesh_group.addInstancedMesh(
+        //    MESH_GROUP_IDENTIFIER_BASE,
+        //    "logic_base",
+        //    this->base_matrix
+        //);
+
+        //// add the body
+        //this->mesh_group.addInstancedMesh(
+        //    MESH_GROUP_IDENTIFIER_BODY,
+        //    "logic_body_off",
+        //    this->body_matrix
+        //);
+
+        //this->base_instance_id = MeshInstances::Get("logic_base")->addInstance(this->base_matrix);
+
+        //this->body_instance_id = MeshInstances::Get("logic_body_off")->addInstance(this->body_matrix);
+
+        this->instances_created = true;
+    }
+
+    void updateRenderPositions() {
+        this->mesh_group.updateGlobalPosition();
+    }
+
+    void evaluate() override {
+
+        bool output0 = inputs[0].getValue() != 1.0f;
+
+        outputs[0].setValue(boolToFloat(output0));
+
+        if (output0 == this->previous_value) {
+            return;
+        }
+
+        this->previous_value = output0;
+
+        //if (output0) {
+        //    // turning on
+        //    this->mesh_group.replaceInstancedMesh(
+        //        MESH_GROUP_IDENTIFIER_BODY,
+        //        "logic_body_on"
+        //    );
+        //}
+        //else {
+        //    // turning off
+        //    this->mesh_group.replaceInstancedMesh(
+        //        MESH_GROUP_IDENTIFIER_BODY,
+        //        "logic_body_off"
+        //    );
+        //}
+    }
+};
+
+class ORGate : public LogicGate {
+private:
+    int base_instance_id;
+    int body_instance_id;
+    bool previous_value = false;
+
+    SMatrix base_matrix = std::make_shared<Matrix>(MatrixTranslate(0, 0, 0));
+    SMatrix body_matrix = std::make_shared<Matrix>(MatrixTranslate(0, 0.25f, 0));
+    bool instances_created = false;
+public:
+    ORGate(Matrix matrix, Renderer* renderer) : LogicGate(
+        {
+            LogicIO("A", IO_TYPE_INPUT),
+            LogicIO("B", IO_TYPE_INPUT)
+        },
+        {
+            LogicIO("Output", IO_TYPE_OUTPUT)
+        },
+        matrix
+    ) {
+
+        // set the position
+        //this->setPosition(matrix);
+
+        this->updateRenderPositions();
+
+        // add the base
+        this->mesh_group.addInstancedMesh(
+            MESH_GROUP_IDENTIFIER_BASE,
+            "logic_base",
+            this->base_matrix
+        );
+
+        // add the body
+        this->mesh_group.addInstancedMesh(
+            MESH_GROUP_IDENTIFIER_BODY,
+            "logic_body_off",
+            this->body_matrix
+        );
+
+        this->instances_created = true;
+    }
+
+    void updateRenderPositions() {
+        this->mesh_group.updateGlobalPosition();
+    }
+
+    void evaluate() override {
+
+        bool output0 = false;
+
+        for (int input_index = 0; input_index < inputs.size(); input_index++) {
+            if (inputs[input_index].getValue() == 1.0f) {
+                output0 = true;
+                break;
+            }
+        }
+
+        outputs[0].setValue(boolToFloat(output0));
+
+        if (output0 == this->previous_value) {
+            return;
+        }
+
+        this->previous_value = output0;
+
+        //if (output0) {
+        //    // turning on
+        //    this->mesh_group.replaceInstancedMesh(
+        //        MESH_GROUP_IDENTIFIER_BODY,
+        //        "logic_body_on"
+        //    );
+        //}
+        //else {
+        //    // turning off
+        //    this->mesh_group.replaceInstancedMesh(
+        //        MESH_GROUP_IDENTIFIER_BODY,
+        //        "logic_body_off"
+        //    );
+        //}
+    }
 };

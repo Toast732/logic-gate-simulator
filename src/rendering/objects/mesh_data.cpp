@@ -5,6 +5,7 @@
 
 typedef std::shared_ptr<Material> SMaterial;
 typedef ResourceManager<Shader> Shaders;
+typedef std::shared_ptr<Matrix> SMatrix;
 
 inline int previous_alpha = 0;
 inline int previous_instance_alpha = 0;

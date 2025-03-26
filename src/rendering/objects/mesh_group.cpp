@@ -149,11 +149,18 @@ class MeshGroup {
 
 		// add a new instanced mesh to this group.
 		void addInstancedMesh(int identifier, std::string instanced_mesh_name, SMatrix local_matrix) {
+
+			// check if the identifier already exists
+			if (this->instanced_meshes.find(identifier) != this->instanced_meshes.end()) {
+				TraceLog(LOG_WARNING, "Attempted to add an already existing instanced mesh.");
+				return;
+			}
+
 			// create the new instanced mesh
 			InstancedMeshStateData instanced_mesh = InstancedMeshStateData(instanced_mesh_name, local_matrix, this->matrix);
 
 			// add it to the list
-			this->instanced_meshes[identifier] = instanced_mesh;
+			this->instanced_meshes[identifier] = instanced_mesh; 
 		}
 
 		void removeInstancedMesh(int identifier) {

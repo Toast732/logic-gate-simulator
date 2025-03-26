@@ -5,6 +5,13 @@
 
 typedef ResourceManager<Shader> Shaders;
 typedef std::shared_ptr<Shader> SShader;
+typedef ResourceManager<Ticker> Tickers;
+
+inline Text3D funni_text;
+
+inline float rotating_box_angle = 0.0f;
+inline Vector3 rotating_box_origin = { 0.0f, 20.0f, 0.0f };
+inline float rotating_box_length = 2.0f;
 
 class Renderer {
 
@@ -14,11 +21,11 @@ class Renderer {
 		int height;
 		std::string name;
 
-		raylib::Window window;
+		raylib::Window* window;
 		bool window_created = false;
 		int camera_mode = 0;
 		float surface_size = 50.0f;
-		float grid_spacing = 0.75f;
+		float grid_spacing = 0.5f;
 		//bool msaa = false;
 
 		float step = 0;
@@ -35,7 +42,9 @@ class Renderer {
 			//setMSAA(true);
 			SetConfigFlags(FLAG_MSAA_4X_HINT);
 
-			new (&this->window) raylib::Window(width, height, name);
+			//setenv("DISPLAY", ":0", 0);
+
+			this->window = new raylib::Window(width, height, name);
 			window_created = true;
 			this->width = width;
 			this->height = height;
@@ -51,15 +60,15 @@ class Renderer {
 		void reloadWindow() {
 			if (window_created) {
 				// close the window
-				window.Close();
+				window->Close();
 
 				// create a new window
-				window.Init(width, height, name);
+				window->Init(width, height, name);
 			}
 		}
 
 		raylib::Window getWindow() const {
-			return window;
+			return *window;
 		}
 
 		//void setMSAA(bool enable) {
@@ -194,6 +203,22 @@ class Renderer {
 
 			this->object_renderer.draw();
 
+			rotating_box_angle += 0.01f;
+
+			Vector3 rotating_box_pos = {
+				rotating_box_origin.x + cos(rotating_box_angle) * rotating_box_length,
+				rotating_box_origin.y + sin(rotating_box_angle) * rotating_box_length,
+				rotating_box_origin.z
+			};
+
+			// Draw the rotating box
+			DrawCube(rotating_box_pos, 0.1f, 0.1f, 0.1f, { 255, 25, 25, 255 });
+			DrawCube(rotating_box_origin, 0.1f, 0.1f, 0.1f, { 25, 255, 25, 255 });
+			DrawLine3D(rotating_box_origin, rotating_box_pos, { 25, 25, 255, 255 });
+
+			// calculate the angle between it's origin and the box
+			float angle = atan2f(rotating_box_pos.x - rotating_box_origin.x, rotating_box_pos.y - rotating_box_origin.y);
+
 			EndMode3D();
 
 			DrawFPS(10, 20);
@@ -201,6 +226,8 @@ class Renderer {
 			DrawText(("Mesh Count: " + std::to_string(this->object_renderer.object_count)).c_str(), 10, 80, 20, {25, 255, 25, 255});
 
 			DrawText(("Instanced Mesh Count: " + std::to_string(this->object_renderer.instanced_mesh_count)).c_str(), 10, 100, 20, { 25, 255, 25, 255 });
+
+			DrawText(("Particle Ticker TPS: " + std::to_string(Tickers::Get("ticker30")->calculateTPS(5))).c_str(), 10, 120, 20, {25, 255, 25, 255});
 
 			if (IsKeyDown(KEY_G)) {
 				DrawText("G Pressed", 10, 40, 20, YELLOW);
@@ -210,7 +237,7 @@ class Renderer {
 				DrawText("H Pressed", 10, 60, 20, YELLOW);
 			}
 
-			
+			DrawText(("Measured Angle: " + std::to_string(angle)).c_str(), 10, 140, 20, YELLOW);
 
 			EndDrawing();
 		}

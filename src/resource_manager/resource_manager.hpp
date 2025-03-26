@@ -14,6 +14,7 @@ public:
 		//this->s_resources = std::map<std::string, std::shared_ptr<ResourceType>>();
 	}*/
 	static void Register(const std::string& name, const std::shared_ptr<ResourceType>& resource) {
+		TraceLog(LOG_INFO, "[RESOURCE MANAGER] Created Resource %s", name.c_str());
 		s_resources[name] = resource;
 	}
 	static std::shared_ptr<ResourceType> Get(const std::string& name) {
@@ -21,7 +22,7 @@ public:
 			return s_resources[name];
 		}
 		else {
-			TraceLog(LOG_WARNING, "Resource not found: %s", name.c_str());
+			TraceLog(LOG_ERROR, "[RESOURCE MANAGER] Resource not found: %s", name.c_str());
 		}
 	}
 	static ResourceType GetCopy(const std::string& name) {

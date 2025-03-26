@@ -202,19 +202,32 @@ inline Vector3 Vector3FromMatrix(Matrix matrix) {
 	return { matrix.m12, matrix.m13, matrix.m14 };
 }
 
+inline static float wrap(float x, float min, float max) {
+	return fmod((x - min) / (max - min), 1) * (max - min) + min;
+}
+
 // gets the yaw and pitch between the two vectors, x = yaw, y = pitch
 inline Vector2 Vector3AngleBetween(Vector3 v1, Vector3 v2) {
 
-	// get the direction by subracting v2 from v1
-	Vector3 direction = Vector3Subtract(v1, v2);
+	// XZ distance between the vectors.
+	float xz_distance = Vector3Distance2D(v1, v2);
 
-	// get the length of the vector, used to calculate pitch.
-	float len = Vector3Length2D(direction);
-
+	// Return angles
 	return {
-		atan2f(direction.z, direction.x),
-		(float)(atan2f(direction.y, len))
+		atan2f(v2.x - v1.x, v2.z - v1.z),
+		(v2.y - v1.y) / xz_distance
 	};
+
+	//// get the direction by subracting v2 from v1
+	//Vector3 direction = Vector3Subtract(v1, v2);
+
+	//// get the length of the vector, used to calculate pitch.
+	//float len = Vector3Length2D(direction);
+
+	//return {
+	//	atan2f(direction.z, direction.x),
+	//	(float)(atan2f(direction.y, len))
+	//};
 
 	// normalise the vectors
 	//Vector3 nv1 = Vector3Normalize(v1);
@@ -229,6 +242,14 @@ inline Vector2 Vector3AngleBetween(Vector3 v1, Vector3 v2) {
 	//	angle * axis.x,
 	//	angle * axis.z
 	//};
+}
+
+inline static float Vector3MagnitudeAngleBetween(Vector3 v1, Vector3 v2) {
+	Vector2 angle_between = Vector3AngleBetween(v1, v2);
+
+	return (angle_between.x + angle_between.y) * 0.5f;
+
+	return wrap((angle_between.x + angle_between.y) * 0.5f, PI * -0.5, PI * 0.5);
 }
 
 #endif

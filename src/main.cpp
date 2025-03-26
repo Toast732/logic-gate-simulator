@@ -26,6 +26,8 @@
 #include "logic/logic_pipe.cpp"
 #define RLIGHTS_IMPLEMENTATION
 #include "../resources/shaders/rlights.h"
+#include "simulation/ticker.cpp"
+#include "rendering/objects/volumes/text.hpp"
 
 #define GLSL_VERSION 330
 
@@ -67,6 +69,26 @@ int main()
     SRenderer renderer = RendererResource::Get("renderer");
 
     raylib::Window window = (*renderer).getWindow();
+
+    //ToggleBorderlessWindowed();
+
+    /*
+        Create tickers
+    */
+
+
+    // 30 tps ticker.
+    Tickers::Register("ticker30", std::make_shared<Ticker>(Ticker(-1)));
+
+    Mesh test_mesh = GenMeshCube(1.0f, 1.0f, 1.0f);
+
+    std::vector<Vector3> test_mesh_vertices;
+
+    for (int i = 0; i < test_mesh.vertexCount*3; i += 3) {
+        test_mesh_vertices.push_back({ test_mesh.vertices[i], test_mesh.vertices[i + 1], test_mesh.vertices[i + 2] });
+    }
+
+    int bp = 0;
 
     /*
         Create materials
@@ -133,23 +155,15 @@ int main()
     setup_logic_pipe();
     setup_logic_gate();
 
-    //SetConfigFlags(FLAG_MSAA_4X_HINT);
-
-    //ToggleFullscreen();
+    /*
+        Start Tickers
+    */
+    typedef ResourceManager<Ticker> Tickers;
+    Tickers::Get("ticker30")->start();
 
     DisableCursor();
 
     SetTargetFPS(144);   // Set our game to run at 144 frames-per-second
-    //--------------------------------------------------------------------------------------
-
-    //raylib::Vector3 origin(0.0f, 0.0f, .0f);
-    //raylib::Camera3D camera(origin);
-    /*camera = camera(0);
-    camera.position = (raylib::Vector3){ 10.0f, 10.0f, 10.0f };
-    camera.target = (raylib::Vector3){ 0.0f, 0.0f, 0.0f };
-    camera.up = (raylib::Vector3){ 0.0f, 0.0f, 1.0f };
-    camera.fovy = 60.0f;
-    camera.projection = CAMERA_PERSPECTIVE;*/
 
     camera = { 0 };
     camera.position = { 0.0f, 5.0f, 5.0f };
@@ -159,7 +173,7 @@ int main()
 
     int camera_mode = CAMERA_FREE;
 
-    (*renderer).setCameraMode(camera_mode);
+    renderer->setCameraMode(camera_mode);
 
     /*Vector3 pos1 = {0.0f, 0.0f, 0.0f};
     Vector3 pos2 = { 10.0f, 10.0f, 10.0f };
@@ -180,6 +194,8 @@ int main()
     float surface_size = 50.0f;
     float grid_spacing = 1.0f;
     float surface_size_h = surface_size / 2.0f;
+
+    //Text3D demo_text = Text3D("Demo Text", GetFontDefault(), 20, RAYWHITE);
 
     /*Matrix demo_matrix = MatrixTranslate(10.0f, 0.0f, 0.0f);
 
@@ -262,7 +278,7 @@ int main()
     bool normal_draw_and_gate = false;
 
     if (normal_draw_and_gate) {
-        AndGate and_gate = AndGate(std::make_shared<Matrix>(MatrixFromVector3({ 0.0f, 0.0f, 0.0f })), &*renderer);
+        //AndGate and_gate = AndGate(std::make_shared<Matrix>(MatrixFromVector3({ 0.0f, 0.0f, 0.0f })), &*renderer);
     }
 
 
@@ -274,10 +290,10 @@ int main()
     auto setupAndGates = [](float surface_size_h, SRenderer renderer) {
         for (float x = -surface_size_h * 1.5; x < surface_size_h; x += 1.75f) {
             for (float z = -surface_size_h * 1.5; z < surface_size_h; z += 1.75f) {
-                and_gates.push_back(AndGate(std::make_shared<Matrix>(MatrixFromVector3({ x, 0.0f, z })), &*renderer));
+                //and_gates.push_back(AndGate(std::make_shared<Matrix>(MatrixFromVector3({ x, 0.0f, z })), &*renderer));
                 //break;
             }
-            //break;
+            //break;w
         }
     };
 
@@ -291,12 +307,32 @@ int main()
     //    //break;
     //}
 
-    AndGate and_gate1 = AndGate(std::make_shared<Matrix>(MatrixFromVector3({ 1.0f, 0.0f, 7.0f })), &*renderer);
+    /*AndGate and_gate1 = AndGate(std::make_shared<Matrix>(MatrixFromVector3({1.0f, 0.0f, 7.0f})), &*renderer);
     AndGate and_gate2 = AndGate(std::make_shared<Matrix>(MatrixFromVector3({ -1.0f, 0.0f, 7.0f })), &*renderer);
-    AndGate and_gate3 = AndGate(std::make_shared<Matrix>(MatrixFromVector3({ 0.0f, 0.0f, 3.0f })), &*renderer);
+    AndGate and_gate3 = AndGate(std::make_shared<Matrix>(MatrixFromVector3({ 0.0f, 0.0f, 3.0f })), &*renderer);*/
 
-    LogicPipe pipe1 = LogicPipe(and_gate1.getOutput("Output"), and_gate3.getInput("B"));
-    LogicPipe pipe2 = LogicPipe(and_gate2.getOutput("Output"), and_gate3.getInput("A"));
+
+    // xor gate using only AndGate, ORGate and NOTGates
+
+    ORGate or_gate1 = ORGate(MatrixFromVector3({ 0.0f, 0.0f, 0.0f }), &*renderer);
+    AndGate and_gate1 = AndGate(MatrixFromVector3({ 3.0f, 0.0f, -3.0f }), &*renderer);
+    AndGate and_gate3 = AndGate(MatrixFromVector3({ 1.5f, 0.0f, -12.0f }), &*renderer);
+    NOTGate not_gate1 = NOTGate(MatrixFromVector3({ 3.0f, 0.0f, -9.0f }), &*renderer);
+    LogicPipe pipe2 = LogicPipe(and_gate1.getOutput("Output"), not_gate1.getInput("A"));
+    LogicPipe pipe4 = LogicPipe(not_gate1.getOutput("Output"), and_gate3.getInput("B"));
+    LogicPipe pipe5 = LogicPipe(or_gate1.getOutput("Output"), and_gate3.getInput("A"));
+
+    /*ORGate or_gate1 = ORGate(MatrixFromVector3({0.0f, 0.0f, 0.0f}), &*renderer);
+    ORGate or_gate2 = ORGate(MatrixFromVector3({ 3.0f, 0.0f, 0.0f }), &*renderer);
+    NOTGate not_gate1 = NOTGate(MatrixFromVector3({ 0.0f, 0.0f, -3.0f }), &*renderer);
+    NOTGate not_gate2 = NOTGate(MatrixFromVector3({ 3.0f, 0.0f, -3.0f }), &*renderer);
+    LogicPipe pipe1 = LogicPipe(not_gate1.getOutput("Output"), or_gate2.getInput("A"));
+    LogicPipe pipe2 = LogicPipe(not_gate2.getOutput("Output"), or_gate1.getInput("B"));
+    LogicPipe pipe3 = LogicPipe(or_gate1.getOutput("Output"), not_gate1.getInput("A"));
+    LogicPipe pipe4 = LogicPipe(or_gate2.getOutput("Output"), not_gate2.getInput("A"));*/
+
+    //LogicPipe pipe1 = LogicPipe(and_gate1.getOutput("Output"), and_gate3.getInput("B"));
+    //LogicPipe pipe2 = LogicPipe(and_gate2.getOutput("Output"), and_gate3.getInput("A"));
 
     //LogicPipe pipe3 = LogicPipe(and_gate2.getOutput("Output"), and_gate2.getInput("A"));
 
@@ -367,6 +403,16 @@ int main()
 
     renderer.object_renderer.addObject(cube.render_object);*/
 
+    /*Mesh test_mesh = GenMeshCube(1.0f, 1.0f, 1.0f);
+
+    std::vector<Vector3> test_mesh_vertices;
+
+    for (int i = 0; i < test_mesh.vertexCount; i+=3) {
+        test_mesh_vertices.push_back({ test_mesh.vertices[i], test_mesh.vertices[i+1], test_mesh.vertices[i+2]});
+	}
+
+    int x = 0;*/
+
     (*renderer).object_renderer.addObject(x_axis_arrow.render_object);
 
     // Draw y axis arrow
@@ -391,6 +437,16 @@ int main()
 
     (*renderer).object_renderer.addObject(z_axis_arrow.render_object);
 
+    Rect reference_box = Rect(
+		MatrixTranslate(2.5f, 0.0f, 2.5f),
+		1.0f,
+		1.0f,
+		1.0f,
+		{ 255, 255, 255, 255 }
+	);
+
+	(*renderer).object_renderer.addObject(reference_box.render_object);
+
     int colour_index = 0;
     int colour_speed = 5;
 
@@ -402,6 +458,23 @@ int main()
 
     int tick_counter = 0;
 
+    std::string funni_string = "ya like jazz?";
+
+    funni_string = "A";
+
+    Matrix funni_matrix = MatrixTranslate(0.0f, 5.0f, 0.0f);
+
+    funni_text = Text3D::Text3D(funni_string, GetFontDefault(), 100, RAYWHITE, funni_matrix);
+
+    //funni_text.setMode(TEXT3D_MODE_RANDOM_COLOUR, 1.0f);
+
+    // add each of the rects in the text to the renderer
+    for (int rect_index = 0; rect_index < funni_text.rects.size(); rect_index++) {
+		renderer->object_renderer.addObject(funni_text.rects[rect_index].render_object);
+	}
+
+    renderer->object_renderer.addObject(funni_text.render_object);
+
     while (!window.ShouldClose())    // Detect window close button or ESC key
     {
 
@@ -409,37 +482,58 @@ int main()
             //(*renderer).reloadWindow();
         }
 
+
+        // XOR gate.
+
+        //pipe2.update();
+        //pipe4.update();
+        //pipe5.update();
+
+        and_gate1.evaluate();
+        and_gate3.evaluate();
+
+        or_gate1.evaluate();
+        not_gate1.evaluate();
+
         if (IsKeyPressed(KEY_G)) {
             and_gate1.setInputValue("A", 1.0f - and_gate1.getInputValue("A"));
-            //and_gate.setInputValue("A", 1.0f - and_gate.getInputValue("A"));
-            /*for (int and_gate_index = 0; and_gate_index < and_gates.size(); and_gate_index++) {
-                and_gates[and_gate_index].setInputValue("A", 1.0f - and_gates[and_gate_index].getInputValue("A"));
-            }*/
+            or_gate1.setInputValue("A", 1.0f - or_gate1.getInputValue("A"));
         }
 
         if (IsKeyPressed(KEY_H)) {
             and_gate1.setInputValue("B", 1.0f - and_gate1.getInputValue("B"));
-            //and_gate.setInputValue("B", 1.0f - and_gate.getInputValue("B"));
-            /*for (int and_gate_index = 0; and_gate_index < and_gates.size(); and_gate_index++) {
-                and_gates[and_gate_index].setInputValue("B", 1.0f - and_gates[and_gate_index].getInputValue("B"));
-            }*/
+            or_gate1.setInputValue("B", 1.0f - or_gate1.getInputValue("B"));
         }
 
-        if (IsKeyPressed(KEY_T)) {
-            and_gate2.setInputValue("A", 1.0f - and_gate2.getInputValue("A"));
+        // SR Latch
+
+        //pipe1.update();
+        //pipe2.update();
+        //pipe3.update();
+        //pipe4.update();
+
+        /*or_gate1.evaluate();
+        or_gate2.evaluate();
+        not_gate1.evaluate();
+        not_gate2.evaluate();
+
+        if (IsKeyPressed(KEY_G)) {
+            or_gate1.setInputValue("A", 1.0f - or_gate1.getInputValue("A"));
         }
 
-        if (IsKeyPressed(KEY_Y)) {
-            and_gate2.setInputValue("B", 1.0f - and_gate2.getInputValue("B"));
+        if (IsKeyPressed(KEY_H)) {
+            or_gate2.setInputValue("B", 1.0f - or_gate2.getInputValue("B"));
         }
 
         if (IsKeyDown(KEY_U)) {
 
-            SMatrix and_gate3_pos = and_gate3.getPosition();
+            
 
-            and_gate3_pos->m13 += 0.01f;
+            SMatrix p = or_gate2.getPosition();
 
-            and_gate3.setPosition(and_gate3_pos);
+            p->m12 += 0.01f;
+
+            or_gate2.setPosition(p);
 
             //Vector3* and_gate3_pos = and_gate3.getPosition();
 
@@ -447,40 +541,36 @@ int main()
         }
 
         if (IsKeyDown(KEY_J)) {
-            SMatrix and_gate3_pos = and_gate3.getPosition();
+           /* SMatrix and_gate3_pos = and_gate3.getPosition();
 
             and_gate3_pos->m13 -= 0.01f;
 
-            and_gate3.setPosition(and_gate3_pos);
+            and_gate3.setPosition(and_gate3_pos);*/
 
             //and_gate3.setPosition({ and_gate3_pos->x, and_gate3_pos->y - 0.01f, and_gate3_pos->z });
-        }
+        //}
 
         if (IsKeyDown(KEY_I)) {
-            SMatrix and_gate3_matrix = and_gate3.getPosition();
+            /*SMatrix and_gate3_matrix = and_gate3.getPosition();
 
             and_gate3_matrix = std::make_shared<Matrix>(MatrixMultiply(MatrixScale(1.001f, 1.001f, 1.001f), *and_gate3_matrix));
 
-            and_gate3.setPosition(and_gate3_matrix);
+            and_gate3.setPosition(and_gate3_matrix);*/
         }
 
         if (IsKeyDown(KEY_K)) {
-            SMatrix and_gate3_matrix = and_gate3.getPosition();
+            /*SMatrix and_gate3_matrix = and_gate3.getPosition();
 
             and_gate3_matrix = std::make_shared<Matrix>(MatrixMultiply(MatrixScale(0.999f, 0.999f, 0.999f), *and_gate3_matrix));
 
-            and_gate3.setPosition(and_gate3_matrix);
+            and_gate3.setPosition(and_gate3_matrix);*/
         }
 
-        pipe1.update();
-        pipe2.update();
+        //pipe1.update();
+        //pipe2.update();
         //pipe3.update();
 
-        and_gate1.evaluate();
-        and_gate2.evaluate();
-        and_gate3.evaluate();
-
-        (*renderer).draw(&camera);
+        renderer->draw(&camera);
 
         x_axis_arrow.updatePosition({ -surface_size_h, 0, surface_size_h }, { 0.0f, 0.0f, PI * -0.5 });
         y_axis_arrow.updatePosition({ surface_size_h, 0, surface_size_h }, { 0.0f, 0.0f, 0.0f });
@@ -560,6 +650,11 @@ int main()
 
         
     }
+
+    /*
+        Stop Tickers
+    */
+    Tickers::Get("ticker30")->stop();
 
     return 0;
 }
